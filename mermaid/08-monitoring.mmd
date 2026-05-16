@@ -1,0 +1,36 @@
+%% Monitoring topology
+%% prom-client → /metrics → Prometheus → Grafana dashboard.
+
+flowchart LR
+    subgraph Backend["Backend (Node.js)"]
+        Code[Application code]
+        PC[prom-client registry]
+        Code -- "bookingsCounter.inc()" --> PC
+        Code -- HTTP middleware emits<br/>http_requests_total<br/>http_request_duration_seconds --> PC
+        Endpoint[/metrics endpoint/]
+        PC --> Endpoint
+    end
+
+    subgraph Prometheus["Prometheus :9090"]
+        Scraper[Scraper job<br/>library-backend<br/>every 15s]
+        TSDB[(Time-series DB)]
+        Scraper --> TSDB
+    end
+
+    subgraph Grafana["Grafana :3000"]
+        DS[Datasource:<br/>Prometheus<br/>auto-provisioned]
+        Dash[Dashboard:<br/>Library Booking — Overview<br/>7 panels]
+        DS --> Dash
+    end
+
+    Endpoint -->|HTTP GET| Scraper
+    TSDB -->|PromQL| DS
+
+    User([Operator]) --> Dash
+
+    classDef metric fill:#fef9c3,stroke:#92400e,color:#92400e;
+    classDef prom fill:#fee2e2,stroke:#7f1d1d,color:#7f1d1d;
+    classDef graf fill:#dcfce7,stroke:#166534,color:#166534;
+    class Code,PC,Endpoint metric;
+    class Scraper,TSDB prom;
+    class DS,Dash graf;

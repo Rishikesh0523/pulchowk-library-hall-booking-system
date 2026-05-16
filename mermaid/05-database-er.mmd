@@ -1,0 +1,38 @@
+%% Entity-Relationship Diagram
+%% Three tables: users, rooms, bookings.
+
+erDiagram
+    USERS ||--o{ BOOKINGS : "places"
+    ROOMS ||--o{ BOOKINGS : "is booked for"
+
+    USERS {
+        int      id PK
+        varchar  name
+        varchar  email UK
+        varchar  password_hash
+        varchar  role "user | admin"
+        timestamp created_at
+    }
+
+    ROOMS {
+        int      id PK
+        varchar  name
+        varchar  room_type "reading | study | conference | discussion | lab | auditorium"
+        int      capacity ">0"
+        text     description
+        varchar  status "available | maintenance | unavailable"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    BOOKINGS {
+        int       id PK
+        int       user_id FK
+        int       room_id FK
+        timestamp start_time
+        timestamp end_time
+        text      purpose
+        varchar   status "pending | approved | rejected | cancelled"
+        timestamp created_at
+        timestamp updated_at
+    }

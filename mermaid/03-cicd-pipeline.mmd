@@ -1,0 +1,51 @@
+%% CI/CD Pipeline — GitHub Actions
+%% Triggered on push to main and on pull requests.
+
+flowchart LR
+    Dev([Developer]) -->|git push origin main| Repo[(GitHub<br/>library-room-booking)]
+    Repo --> Trigger{{Workflow trigger:<br/>push or pull_request}}
+
+    subgraph Jobs["GitHub Actions Runners (ubuntu-latest)"]
+        direction TB
+
+        subgraph BJob["Job: backend"]
+            B1[checkout]
+            B2[setup-node 20]
+            B3[npm ci]
+            B4[npm run lint]
+            B5[npm test]
+            B1 --> B2 --> B3 --> B4 --> B5
+        end
+
+        subgraph FJob["Job: frontend"]
+            F1[checkout]
+            F2[setup-node 20]
+            F3[npm ci]
+            F4[npm run lint]
+            F5[npm run build]
+            F6[upload dist artifact]
+            F1 --> F2 --> F3 --> F4 --> F5 --> F6
+        end
+
+        subgraph DJob["Job: docker · needs both above<br/>only on push to main"]
+            D1[checkout]
+            D2[buildx setup]
+            D3[login to ghcr.io]
+            D4[build & push backend image]
+            D5[build & push frontend image]
+            D1 --> D2 --> D3 --> D4
+            D3 --> D5
+        end
+    end
+
+    Trigger --> BJob
+    Trigger --> FJob
+    BJob --> DJob
+    FJob --> DJob
+
+    DJob -->|ghcr.io/&lt;owner&gt;/...-backend:latest<br/>...:&lt;sha&gt;| GHCR[(GitHub Container<br/>Registry)]
+
+    classDef pass fill:#dcfce7,stroke:#166534,color:#166534;
+    classDef deploy fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+    class B5,F6 pass;
+    class GHCR deploy;

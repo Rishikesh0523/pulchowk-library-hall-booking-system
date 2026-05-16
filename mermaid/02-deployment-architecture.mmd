@@ -1,0 +1,53 @@
+%% Deployment Architecture — AWS view
+%% What Terraform provisions and what Ansible deploys on top of it.
+
+flowchart TB
+    Internet([Internet])
+
+    subgraph AWS["AWS · ap-south-1 (Mumbai)"]
+        direction TB
+
+        subgraph VPC["Default VPC"]
+            direction TB
+
+            SG[Security Group<br/>22 from your IP<br/>80, 5000, 9090, 3000 from world]
+
+            subgraph EC2["EC2 t3.nano · Ubuntu 22.04 · 20 GB gp3 · 2 GB swap"]
+                direction TB
+
+                subgraph DockerNet["Docker bridge network: library-net"]
+                    direction LR
+                    C1[library-frontend<br/>nginx :80]
+                    C2[library-backend<br/>node :5000]
+                    C3[(library-postgres<br/>:5432)]
+                    C4[library-prometheus<br/>:9090]
+                    C5[library-grafana<br/>:3000]
+                end
+
+                Vol1[(volume:<br/>postgres-data)]
+                Vol2[(volume:<br/>prometheus-data)]
+                Vol3[(volume:<br/>grafana-data)]
+
+                C3 --- Vol1
+                C4 --- Vol2
+                C5 --- Vol3
+            end
+        end
+    end
+
+    Internet -->|HTTPS not configured;<br/>HTTP only for demo| SG
+    SG --> C1
+    SG --> C4
+    SG --> C5
+
+    C1 -. /api .-> C2
+    C2 -. SQL .-> C3
+    C4 -. scrape /metrics .-> C2
+    C5 -. PromQL .-> C4
+
+    classDef aws       fill:#fef3c7,stroke:#92400e,stroke-width:1px;
+    classDef container fill:#f8fafc,stroke:#0f172a,stroke-width:1px;
+    classDef volume    fill:#e0f2fe,stroke:#075985,stroke-width:1px;
+    class SG aws;
+    class C1,C2,C3,C4,C5 container;
+    class Vol1,Vol2,Vol3 volume;

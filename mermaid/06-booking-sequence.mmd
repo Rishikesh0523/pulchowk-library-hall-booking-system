@@ -1,0 +1,42 @@
+%% Sequence Diagram — User books a room
+%% End-to-end: validation, overlap check, persistence, metrics.
+
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as React Frontend
+    participant API as Express Backend
+    participant Auth as JWT Middleware
+    participant DB as PostgreSQL
+    participant Metric as prom-client
+
+    User->>FE: Fill booking form & submit
+    FE->>FE: Convert local datetime → ISO UTC
+    FE->>API: POST /api/bookings<br/>{ roomId, startTime, endTime, purpose }
+
+    API->>Auth: Verify Bearer JWT
+    Auth-->>API: { id, role } or 401
+
+    API->>API: Validate body (express-validator)
+    alt Past date or end ≤ start
+        API-->>FE: 400 — Invalid time range
+    end
+
+    API->>DB: SELECT * FROM rooms WHERE id = $1
+    DB-->>API: room row
+    alt Room status != 'available'
+        API-->>FE: 400 — Room unavailable
+    end
+
+    API->>DB: SELECT 1 FROM bookings WHERE<br/>room_id = ? AND time overlaps
+    DB-->>API: rowCount
+
+    alt Overlap exists
+        API-->>FE: 409 — Already booked
+    else No overlap
+        API->>DB: INSERT INTO bookings (status='pending')
+        DB-->>API: new booking row
+        API->>Metric: bookings_created_total.inc()
+        API-->>FE: 201 Created · { booking }
+        FE-->>User: Redirect to My Bookings<br/>(badge: pending)
+    end

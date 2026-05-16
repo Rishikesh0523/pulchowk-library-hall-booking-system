@@ -1,0 +1,37 @@
+%% System Architecture — Library Hall Booking System
+%% Shows all running services, the network they share, and how data flows.
+
+flowchart LR
+    User([User Browser])
+
+    subgraph Host["Docker Host (EC2 t3.nano or localhost)"]
+        direction LR
+
+        subgraph FE["Frontend Container"]
+            Nginx[Nginx :80<br/>serves React build]
+        end
+
+        subgraph BE["Backend Container"]
+            Express[Express :5000<br/>/api · /health · /metrics]
+        end
+
+        subgraph DB["Database Container"]
+            Postgres[(PostgreSQL :5432<br/>users · rooms · bookings)]
+        end
+
+        subgraph Mon["Monitoring"]
+            Prom[Prometheus :9090<br/>scrapes /metrics every 15s]
+            Graf[Grafana :3000<br/>provisioned dashboard]
+        end
+    end
+
+    User -->|HTTP :80| Nginx
+    Nginx -->|/api/* proxy| Express
+    Express -->|SQL| Postgres
+    Prom -->|GET /metrics| Express
+    Graf -->|PromQL| Prom
+
+    classDef container fill:#f8fafc,stroke:#0f172a,stroke-width:1px,color:#0f172a;
+    classDef external  fill:#ffffff,stroke:#475569,stroke-dasharray: 4 3,color:#0f172a;
+    class Nginx,Express,Postgres,Prom,Graf container;
+    class User external;
