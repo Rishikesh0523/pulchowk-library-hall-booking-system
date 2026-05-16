@@ -29,7 +29,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-jammy-22.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd*/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
@@ -113,6 +113,18 @@ resource "aws_instance" "app" {
   user_data = <<-EOF
               #!/bin/bash
               set -e
+
+              # 2 GB swapfile — essential on t3.nano (0.5 GB RAM)
+              if [ ! -f /swapfile ]; then
+                fallocate -l 2G /swapfile
+                chmod 600 /swapfile
+                mkswap /swapfile
+                swapon /swapfile
+                echo '/swapfile none swap sw 0 0' >> /etc/fstab
+                echo 'vm.swappiness=20' >> /etc/sysctl.conf
+                sysctl -p
+              fi
+
               apt-get update -y
               apt-get install -y ca-certificates curl gnupg
               install -m 0755 -d /etc/apt/keyrings
