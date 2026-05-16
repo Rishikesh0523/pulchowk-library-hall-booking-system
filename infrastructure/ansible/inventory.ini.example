@@ -1,0 +1,6 @@
+[app]
+# Replace EC2_PUBLIC_IP with the IP from `terraform output public_ip`
+EC2_PUBLIC_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/my-keypair.pem
+
+[app:vars]
+ansible_python_interpreter=/usr/bin/python3

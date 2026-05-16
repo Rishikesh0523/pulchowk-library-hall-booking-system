@@ -1,0 +1,7 @@
+aws_region    = "ap-south-1"
+project_name  = "library-booking"
+instance_type = "t3.small"
+key_pair_name = "my-keypair"
+
+# Restrict SSH to your own IP for production
+ssh_allowed_cidrs = ["0.0.0.0/0"]
